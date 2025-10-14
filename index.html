@@ -8,9 +8,9 @@
     body {
       font-family: sans-serif;
       margin: 2rem;
-      max-width: 500px;
+      max-width: 600px;
     }
-    h1 {
+    h1, h2 {
       margin-bottom: 1rem;
     }
     form {
@@ -28,6 +28,13 @@
       padding: 0.7rem;
       font-size: 1rem;
       cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
     }
     table {
       width: 100%;
@@ -41,6 +48,9 @@
     }
     th {
       background-color: #f3f3f3;
+    }
+    canvas {
+      margin-top: 2rem;
     }
   </style>
 </head>
@@ -64,9 +74,15 @@
     <tbody></tbody>
   </table>
 
+  <h2>Trend over tijd 📈</h2>
+  <canvas id="painChart" width="400" height="200"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     const form = document.getElementById('painForm');
     const tableBody = document.querySelector('#logTable tbody');
+    const chartCanvas = document.getElementById('painChart');
+    let chart; // globale variabele voor de grafiek
 
     function loadLogs() {
       const logs = JSON.parse(localStorage.getItem('painLogs') || '[]');
@@ -75,6 +91,43 @@
         const row = document.createElement('tr');
         row.innerHTML = `<td>${log.date}</td><td>${log.score}</td>`;
         tableBody.appendChild(row);
+      });
+      updateChart(logs);
+    }
+
+    function updateChart(logs) {
+      const labels = logs.map(log => log.date);
+      const data = logs.map(log => Number(log.score));
+
+      if (chart) {
+        chart.destroy(); // bestaande grafiek vervangen bij update
+      }
+
+      chart = new Chart(chartCanvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Pijnscore',
+            data: data,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.2,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              min: 0,
+              max: 10,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
       });
     }
 
