@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pijnscore Voeten Log</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 2rem;
+      max-width: 500px;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    input[type="number"] {
+      padding: 0.5rem;
+      font-size: 1rem;
+      width: 100%;
+    }
+    button {
+      padding: 0.7rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: center;
+    }
+    th {
+      background-color: #f3f3f3;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Pijnscore Voeten Log 🦶</h1>
+
+  <form id="painForm">
+    <label for="painScore">Pijnscore (0–10):</label>
+    <input type="number" id="painScore" name="painScore" min="0" max="10" required />
+    <button type="submit">Log score</button>
+  </form>
+
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>Datum</th>
+        <th>Pijnscore</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('painForm');
+    const tableBody = document.querySelector('#logTable tbody');
+
+    function loadLogs() {
+      const logs = JSON.parse(localStorage.getItem('painLogs') || '[]');
+      tableBody.innerHTML = '';
+      logs.forEach(log => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${log.date}</td><td>${log.score}</td>`;
+        tableBody.appendChild(row);
+      });
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const score = document.getElementById('painScore').value;
+      const today = new Date().toLocaleDateString('nl-NL');
+
+      const logs = JSON.parse(localStorage.getItem('painLogs') || '[]');
+      logs.push({ date: today, score: score });
+      localStorage.setItem('painLogs', JSON.stringify(logs));
+
+      form.reset();
+      loadLogs();
+    });
+
+    loadLogs();
+  </script>
+
+</body>
+</html>
