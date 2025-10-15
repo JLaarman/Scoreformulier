@@ -2,156 +2,191 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>Pijnscore & Kilometer Log</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dagelijkse Score Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: sans-serif;
-      margin: 2rem;
-      max-width: 650px;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
     }
-    h1, h2 {
-      margin-bottom: 1rem;
+    h1 {
+      text-align: center;
+      background: #2c3e50;
+      color: white;
+      padding: 15px 0;
+      margin: 0 0 20px 0;
     }
     form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 15px;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+    .field {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 2rem;
     }
     label {
-      font-weight: 600;
+      font-weight: bold;
+      margin-bottom: 8px;
     }
     input[type="number"] {
-      padding: 0.5rem;
+      padding: 8px;
       font-size: 1rem;
-      width: 100%;
     }
     button {
-      padding: 0.7rem;
-      font-size: 1rem;
-      cursor: pointer;
-      background-color: #4CAF50;
+      margin: 20px auto;
+      display: block;
+      padding: 10px 20px;
+      background: #2c3e50;
       color: white;
       border: none;
       border-radius: 5px;
-      margin-top: 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
     }
     button:hover {
-      background-color: #45a049;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.5rem;
-      text-align: center;
-    }
-    th {
-      background-color: #f3f3f3;
+      background: #1a242f;
     }
     canvas {
-      margin-top: 2rem;
+      max-width: 1000px;
+      margin: 30px auto;
+      display: block;
     }
   </style>
 </head>
 <body>
 
-  <h1>Pijnscore & Kilometer Log 🦶🏃‍♂️</h1>
+  <h1>Dagelijkse Score Tracker</h1>
 
-  <form id="logForm">
-    <label for="painScore">Pijnscore (0–10):</label>
-    <input type="number" id="painScore" name="painScore" min="0" max="10" required />
-
-    <label for="kmWalked">Aantal kilometers gelopen vandaag:</label>
-    <input type="number" id="kmWalked" name="kmWalked" min="0" step="0.1" required />
-
-    <button type="submit">Log gegevens</button>
+  <form id="scoreForm">
+    <div class="field">
+      <label for="slaapkwaliteit">Slaapkwaliteit (0–10)</label>
+      <input type="number" id="slaapkwaliteit" name="slaapkwaliteit" min="0" max="10" required>
+    </div>
+    <div class="field">
+      <label for="ochtendstijfheid">Ochtendstijfheid (0–10)</label>
+      <input type="number" id="ochtendstijfheid" name="ochtendstijfheid" min="0" max="10" required>
+    </div>
+    <div class="field">
+      <label for="pijnscore">Pijnscore voeten (0–10)</label>
+      <input type="number" id="pijnscore" name="pijnscore" min="0" max="10" required>
+    </div>
+    <div class="field">
+      <label for="kilometers">Kilometers gelopen vandaag</label>
+      <input type="number" id="kilometers" name="kilometers" min="0" step="0.1" required>
+    </div>
   </form>
 
-  <table id="logTable">
-    <thead>
-      <tr>
-        <th>Datum</th>
-        <th>Pijnscore</th>
-        <th>Kilometers</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <button type="button" id="saveBtn">Opslaan</button>
 
-  <h2>Trend over tijd 📈</h2>
-  <canvas id="trendChart" width="400" height="200"></canvas>
+  <canvas id="trendChart"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    const form = document.getElementById('logForm');
-    const tableBody = document.querySelector('#logTable tbody');
+    const slaapInput = document.getElementById('slaapkwaliteit');
+    const stijfheidInput = document.getElementById('ochtendstijfheid');
+    const pijnInput = document.getElementById('pijnscore');
+    const kmInput = document.getElementById('kilometers');
+    const saveBtn = document.getElementById('saveBtn');
     const chartCanvas = document.getElementById('trendChart');
-    let chart;
 
-    function loadLogs() {
-      const logs = JSON.parse(localStorage.getItem('dailyLogs') || '[]');
-      tableBody.innerHTML = '';
-      logs.forEach(log => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${log.date}</td><td>${log.pain}</td><td>${log.km}</td>`;
-        tableBody.appendChild(row);
-      });
-      updateChart(logs);
-    }
+    // Data ophalen uit localStorage
+    let scores = JSON.parse(localStorage.getItem('scores')) || [];
 
-    function updateChart(logs) {
-      const labels = logs.map(log => log.date);
-      const painData = logs.map(log => Number(log.pain));
-      const kmData = logs.map(log => Number(log.km));
+    saveBtn.addEventListener('click', () => {
+      const datum = new Date().toISOString().split('T')[0];
 
-      if (chart) {
-        chart.destroy();
+      const nieuweScore = {
+        datum,
+        slaap: Number(slaapInput.value),
+        stijfheid: Number(stijfheidInput.value),
+        pijn: Number(pijnInput.value),
+        km: Number(kmInput.value),
+      };
+
+      // check of er al een entry is voor vandaag → overschrijven
+      const bestaandeIndex = scores.findIndex(s => s.datum === datum);
+      if (bestaandeIndex >= 0) {
+        scores[bestaandeIndex] = nieuweScore;
+      } else {
+        scores.push(nieuweScore);
       }
 
-      chart = new Chart(chartCanvas, {
+      localStorage.setItem('scores', JSON.stringify(scores));
+      updateChart();
+      slaapInput.value = '';
+      stijfheidInput.value = '';
+      pijnInput.value = '';
+      kmInput.value = '';
+    });
+
+    const ctx = chartCanvas.getContext('2d');
+    let chart;
+
+    function updateChart() {
+      const labels = scores.map(s => s.datum);
+      const slaapData = scores.map(s => s.slaap);
+      const stijfheidData = scores.map(s => s.stijfheid);
+      const pijnData = scores.map(s => s.pijn);
+      const kmData = scores.map(s => s.km);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [
             {
-              label: 'Pijnscore',
-              data: painData,
-              borderColor: 'rgba(75, 192, 192, 1)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              label: 'Slaapkwaliteit',
+              data: slaapData,
+              borderColor: '#2980b9',
+              fill: false,
               tension: 0.2,
-              yAxisID: 'yPain',
-              fill: true
+            },
+            {
+              label: 'Ochtendstijfheid',
+              data: stijfheidData,
+              borderColor: '#e67e22',
+              fill: false,
+              tension: 0.2,
+            },
+            {
+              label: 'Pijnscore voeten',
+              data: pijnData,
+              borderColor: '#c0392b',
+              fill: false,
+              tension: 0.2,
             },
             {
               label: 'Kilometers',
               data: kmData,
-              borderColor: 'rgba(255, 205, 86, 1)',
-              backgroundColor: 'rgba(255, 205, 86, 0.2)',
+              borderColor: '#27ae60',
+              fill: false,
               tension: 0.2,
-              yAxisID: 'yKM',
-              fill: true
-            }
-          ]
+              yAxisID: 'km',
+            },
+          ],
         },
         options: {
           responsive: true,
           interaction: {
             mode: 'index',
-            intersect: false
+            intersect: false,
           },
-          stacked: false,
           plugins: {
             legend: {
               display: true,
-              position: 'top',
-              labels: {
-                usePointStyle: true
-              },
               onClick: (e, legendItem, legend) => {
                 const index = legendItem.datasetIndex;
                 const ci = legend.chart;
@@ -161,42 +196,27 @@
               }
             },
             title: {
-              display: false
+              display: true,
+              text: 'Trendoverzicht'
             }
           },
           scales: {
-            yPain: {
-              type: 'linear',
-              position: 'left',
-              min: 0,
+            y: {
+              beginAtZero: true,
               max: 10,
-              ticks: { stepSize: 1 }
+              title: { display: true, text: 'Scores (0–10)' }
             },
-            yKM: {
-              type: 'linear',
+            km: {
+              beginAtZero: true,
               position: 'right',
-              beginAtZero: true
+              title: { display: true, text: 'Kilometers' }
             }
           }
         }
       });
     }
 
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const pain = document.getElementById('painScore').value;
-      const km = document.getElementById('kmWalked').value;
-      const today = new Date().toLocaleDateString('nl-NL');
-
-      const logs = JSON.parse(localStorage.getItem('dailyLogs') || '[]');
-      logs.push({ date: today, pain: pain, km: km });
-      localStorage.setItem('dailyLogs', JSON.stringify(logs));
-
-      form.reset();
-      loadLogs();
-    });
-
-    loadLogs();
+    updateChart();
   </script>
 
 </body>
