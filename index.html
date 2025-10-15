@@ -70,11 +70,32 @@
       background: #1a242f;
     }
 
-    canvas {
+    .chart-container {
+      position: relative;
       max-width: 1000px;
       margin: 30px auto;
-      display: block;
+    }
+
+    #fullscreenBtn {
+      position: absolute;
+      top: -10px;
+      right: 0;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
       cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #fullscreenBtn:hover {
+      background: #1a242f;
+    }
+
+    canvas {
+      width: 100%;
+      cursor: default;
     }
 
     /* Overlay voor fullscreen grafiek */
@@ -96,17 +117,19 @@
 
     .overlay-content {
       position: relative;
-      width: 95%;
-      max-width: 1200px;
       background: white;
-      padding: 10px;
       border-radius: 8px;
+      width: 95vw;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
     }
 
     .overlay canvas {
+      flex: 1;
       width: 100% !important;
-      height: 70vh !important;
-      cursor: default;
+      height: 100% !important;
     }
 
     .close-btn {
@@ -117,6 +140,7 @@
       background: none;
       border: none;
       cursor: pointer;
+      z-index: 1000;
     }
   </style>
 </head>
@@ -145,7 +169,10 @@
 
   <button type="button" id="saveBtn">Opslaan</button>
 
-  <canvas id="trendChart"></canvas>
+  <div class="chart-container">
+    <canvas id="trendChart"></canvas>
+    <button id="fullscreenBtn">⛶ Volledig scherm</button>
+  </div>
 
   <!-- Fullscreen overlay -->
   <div class="overlay" id="chartOverlay">
@@ -163,6 +190,7 @@
     const saveBtn = document.getElementById('saveBtn');
 
     const chartCanvas = document.getElementById('trendChart');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
     const overlay = document.getElementById('chartOverlay');
     const closeOverlay = document.getElementById('closeOverlay');
     const fullscreenCanvas = document.getElementById('fullscreenChart');
@@ -226,10 +254,12 @@
 
       const options = {
         responsive: true,
+        maintainAspectRatio: !isFullscreen,
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
             display: true,
+            position: isFullscreen ? 'top' : 'bottom',
             onClick: (e, legendItem, legend) => {
               const index = legendItem.datasetIndex;
               const ci = legend.chart;
@@ -255,7 +285,8 @@
       }
     }
 
-    chartCanvas.addEventListener('click', () => {
+    // Fullscreen open/close
+    fullscreenBtn.addEventListener('click', () => {
       overlay.classList.add('active');
       updateChart(fullscreenCanvas, true);
     });
@@ -266,6 +297,13 @@
 
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.classList.remove('active');
+    });
+
+    // ESC toets sluit fullscreen
+    document.addEventListener('keydown', (e) => {
+      if (e.key === "Escape" && overlay.classList.contains('active')) {
+        overlay.classList.remove('active');
+      }
     });
 
     updateChart(chartCanvas, false);
