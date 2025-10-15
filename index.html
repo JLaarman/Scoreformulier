@@ -6,12 +6,17 @@
   <title>Dagelijkse Score Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
       background: #f4f4f4;
     }
+
     h1 {
       text-align: center;
       background: #2c3e50;
@@ -19,15 +24,16 @@
       padding: 15px 0;
       margin: 0 0 20px 0;
     }
+
     form {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
       gap: 15px;
       max-width: 600px;
       margin: 0 auto;
       padding: 0 10px;
     }
+
     .field {
       background: white;
       padding: 15px;
@@ -36,14 +42,18 @@
       display: flex;
       flex-direction: column;
     }
+
     label {
       font-weight: bold;
       margin-bottom: 8px;
     }
+
     input[type="number"] {
+      width: 100%;
       padding: 8px;
       font-size: 1rem;
     }
+
     button {
       margin: 20px auto;
       display: block;
@@ -55,13 +65,58 @@
       font-size: 1rem;
       cursor: pointer;
     }
+
     button:hover {
       background: #1a242f;
     }
+
     canvas {
       max-width: 1000px;
       margin: 30px auto;
       display: block;
+      cursor: pointer;
+    }
+
+    /* Overlay voor fullscreen grafiek */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .overlay-content {
+      position: relative;
+      width: 95%;
+      max-width: 1200px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .overlay canvas {
+      width: 100% !important;
+      height: 70vh !important;
+      cursor: default;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -92,16 +147,28 @@
 
   <canvas id="trendChart"></canvas>
 
+  <!-- Fullscreen overlay -->
+  <div class="overlay" id="chartOverlay">
+    <div class="overlay-content">
+      <button class="close-btn" id="closeOverlay">&times;</button>
+      <canvas id="fullscreenChart"></canvas>
+    </div>
+  </div>
+
   <script>
     const slaapInput = document.getElementById('slaapkwaliteit');
     const stijfheidInput = document.getElementById('ochtendstijfheid');
     const pijnInput = document.getElementById('pijnscore');
     const kmInput = document.getElementById('kilometers');
     const saveBtn = document.getElementById('saveBtn');
-    const chartCanvas = document.getElementById('trendChart');
 
-    // Data ophalen uit localStorage
+    const chartCanvas = document.getElementById('trendChart');
+    const overlay = document.getElementById('chartOverlay');
+    const closeOverlay = document.getElementById('closeOverlay');
+    const fullscreenCanvas = document.getElementById('fullscreenChart');
+
     let scores = JSON.parse(localStorage.getItem('scores')) || [];
+    let chart, fullscreenChart;
 
     saveBtn.addEventListener('click', () => {
       const datum = new Date().toISOString().split('T')[0];
@@ -114,7 +181,6 @@
         km: Number(kmInput.value),
       };
 
-      // check of er al een entry is voor vandaag → overschrijven
       const bestaandeIndex = scores.findIndex(s => s.datum === datum);
       if (bestaandeIndex >= 0) {
         scores[bestaandeIndex] = nieuweScore;
@@ -123,100 +189,86 @@
       }
 
       localStorage.setItem('scores', JSON.stringify(scores));
-      updateChart();
+      updateChart(chartCanvas, false);
+      updateChart(fullscreenCanvas, true);
+
       slaapInput.value = '';
       stijfheidInput.value = '';
       pijnInput.value = '';
       kmInput.value = '';
     });
 
-    const ctx = chartCanvas.getContext('2d');
-    let chart;
+    function buildDataset(label, data, color, yAxis = 'y') {
+      return {
+        label,
+        data,
+        borderColor: color,
+        fill: false,
+        tension: 0.2,
+        yAxisID: yAxis,
+      };
+    }
 
-    function updateChart() {
+    function updateChart(canvas, isFullscreen) {
+      const ctx = canvas.getContext('2d');
       const labels = scores.map(s => s.datum);
       const slaapData = scores.map(s => s.slaap);
       const stijfheidData = scores.map(s => s.stijfheid);
       const pijnData = scores.map(s => s.pijn);
       const kmData = scores.map(s => s.km);
 
-      if (chart) chart.destroy();
+      const datasets = [
+        buildDataset('Slaapkwaliteit', slaapData, '#2980b9'),
+        buildDataset('Ochtendstijfheid', stijfheidData, '#e67e22'),
+        buildDataset('Pijnscore voeten', pijnData, '#c0392b'),
+        buildDataset('Kilometers', kmData, '#27ae60', 'km')
+      ];
 
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Slaapkwaliteit',
-              data: slaapData,
-              borderColor: '#2980b9',
-              fill: false,
-              tension: 0.2,
-            },
-            {
-              label: 'Ochtendstijfheid',
-              data: stijfheidData,
-              borderColor: '#e67e22',
-              fill: false,
-              tension: 0.2,
-            },
-            {
-              label: 'Pijnscore voeten',
-              data: pijnData,
-              borderColor: '#c0392b',
-              fill: false,
-              tension: 0.2,
-            },
-            {
-              label: 'Kilometers',
-              data: kmData,
-              borderColor: '#27ae60',
-              fill: false,
-              tension: 0.2,
-              yAxisID: 'km',
-            },
-          ],
+      const options = {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const ci = legend.chart;
+              const meta = ci.getDatasetMeta(index);
+              meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+              ci.update();
+            }
+          },
+          title: { display: isFullscreen, text: isFullscreen ? 'Trendoverzicht (Fullscreen)' : 'Trendoverzicht' }
         },
-        options: {
-          responsive: true,
-          interaction: {
-            mode: 'index',
-            intersect: false,
-          },
-          plugins: {
-            legend: {
-              display: true,
-              onClick: (e, legendItem, legend) => {
-                const index = legendItem.datasetIndex;
-                const ci = legend.chart;
-                const meta = ci.getDatasetMeta(index);
-                meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-                ci.update();
-              }
-            },
-            title: {
-              display: true,
-              text: 'Trendoverzicht'
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 10,
-              title: { display: true, text: 'Scores (0–10)' }
-            },
-            km: {
-              beginAtZero: true,
-              position: 'right',
-              title: { display: true, text: 'Kilometers' }
-            }
-          }
+        scales: {
+          y: { beginAtZero: true, max: 10, title: { display: true, text: 'Scores (0–10)' } },
+          km: { beginAtZero: true, position: 'right', title: { display: true, text: 'Kilometers' } }
         }
-      });
+      };
+
+      if (isFullscreen) {
+        if (fullscreenChart) fullscreenChart.destroy();
+        fullscreenChart = new Chart(ctx, { type: 'line', data: { labels, datasets }, options });
+      } else {
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, { type: 'line', data: { labels, datasets }, options });
+      }
     }
 
-    updateChart();
+    chartCanvas.addEventListener('click', () => {
+      overlay.classList.add('active');
+      updateChart(fullscreenCanvas, true);
+    });
+
+    closeOverlay.addEventListener('click', () => {
+      overlay.classList.remove('active');
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('active');
+    });
+
+    updateChart(chartCanvas, false);
   </script>
 
 </body>
