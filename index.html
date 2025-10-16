@@ -1,294 +1,272 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Dagelijkse Score Tracker — GitHub versie</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dagelijkse Score Tracker — Uitgebreid</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-/* --- CSS: zelfde als eerder, met kleine aanpassingen --- */
-* { box-sizing: border-box; }
-body { font-family: Arial, Helvetica, sans-serif; margin: 0; background:#f5f7fa; color:#222; }
-header { background:#2c3e50; color:white; padding:14px 12px; text-align:center; font-size:1.15rem; }
-main { max-width:1100px; margin:18px auto; padding:0 12px 60px 12px; }
-/* ... rest van CSS hetzelfde ... */
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fa;color:#222}
+header{background:#2c3e50;color:white;padding:14px;text-align:center;font-size:1.15rem}
+main{max-width:1100px;margin:18px auto;padding:0 12px 60px 12px}
+.top-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.date-wrap{flex:1 1 220px}
+.controls-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.small{font-size:.9rem;color:#444}
+form.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.card{background:white;padding:12px;border-radius:8px;box-shadow:0 2px 6px rgba(20,30,40,.06);display:flex;flex-direction:column;gap:8px}
+label{font-weight:600;font-size:.95rem;color:#2b3b46}
+input[type=number],input[type=date],select,input[type=text]{padding:8px;font-size:1rem;border-radius:6px;border:1px solid #ddd;width:100%}
+input[type=checkbox]{transform:scale(1.05);margin-right:6px}
+.btn{background:#2c3e50;color:white;border:none;padding:10px 14px;border-radius:7px;cursor:pointer;font-weight:600}
+.btn:hover{background:#1f2a32}
+.muted{color:#666;font-size:0.9rem}
+.chart-area{margin-top:18px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.chart-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chart-checkboxes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chart-container{position:relative;background:white;padding:12px;border-radius:8px;box-shadow:0 2px 6px rgba(20,30,40,.06)}
+#fullscreenBtn{position:absolute;top:12px;right:12px;z-index:5;background:#2c3e50;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
+#trendChart{width:100%;height:300px}
+.table-wrap{margin-top:16px;overflow:auto;background:white;border-radius:8px;box-shadow:0 2px 6px rgba(20,30,40,.06)}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{padding:8px 10px;border-bottom:1px solid #eee;text-align:left}
+th{background:#fafafa;font-weight:700;color:#34495e;position:sticky;top:0}
+.small-btn{padding:6px 8px;border-radius:6px;border:none;cursor:pointer;font-weight:600}
+.edit-btn{background:#2980b9;color:#fff}
+.del-btn{background:#c0392b;color:#fff}
+.csv-btn{background:#27ae60;color:#fff}
+/* fullscreen overlay */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;justify-content:center;align-items:center}
+.overlay.active{display:flex}
+.overlay-content{background:white;width:95vw;height:92vh;border-radius:8px;padding:12px;display:flex;flex-direction:column}
+.overlay-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.overlay-top .legend-controls{display:flex;gap:8px;flex-wrap:wrap}
+.overlay-canvas{flex:1;margin-top:8px}
+@media(max-width:720px){form.grid{grid-template-columns:1fr}.top-row{flex-direction:column;align-items:flex-start}#trendChart{height:260px}}
 </style>
 </head>
 <body>
-<header>Dagelijkse Score Tracker — GitHub</header>
+<header>Dagelijkse Score Tracker — Uitgebreid</header>
 <main>
 <div class="top-row">
-  <div class="date-wrap card">
-    <label for="entryDate">Datum</label>
-    <input type="date" id="entryDate" />
-    <div class="muted small">Kies datum (default = vandaag). Als de datum al bestaat wordt de entry overschreven.</div>
-  </div>
-  <div class="controls-wrap">
-    <button id="saveBtn" class="btn">Opslaan</button>
-    <button id="newBtn" class="btn" style="background:#7f8c8d">Nieuw</button>
-    <button id="exportCsv" class="small-btn csv-btn">Export CSV</button>
-    <select id="periodSelect" class="small" title="Periode filter" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
-      <option value="7">Laatste 7 dagen</option>
-      <option value="30">Laatste 30 dagen</option>
-      <option value="all" selected>Alle data</option>
-    </select>
-  </div>
+<div class="date-wrap card">
+<label for="entryDate">Datum</label>
+<input type="date" id="entryDate">
+<div class="muted small">Kies datum (default = vandaag). Als de datum al bestaat wordt de entry overschreven.</div>
+</div>
+<div class="controls-wrap">
+<button id="saveBtn" class="btn">Opslaan</button>
+<button id="newBtn" class="btn" style="background:#7f8c8d">Nieuw</button>
+<button id="exportCsv" class="small-btn csv-btn">Export CSV</button>
+<select id="periodSelect" class="small" title="Periode filter" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+<option value="7">Laatste 7 dagen</option>
+<option value="30">Laatste 30 dagen</option>
+<option value="all" selected>Alle data</option>
+</select>
+</div>
 </div>
 
 <form class="grid" id="mainForm" onsubmit="return false;">
-  <!-- parameters, hetzelfde als jouw laatste versie -->
-  <div class="card">
-    <label for="slaapkwaliteit">Slaapkwaliteit (0–10)</label>
-    <input type="number" id="slaapkwaliteit" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="ochtendstijfheid">Ochtendstijfheid (0–10)</label>
-    <input type="number" id="ochtendstijfheid" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="pijnscore">Pijnscore voeten (0–10)</label>
-    <input type="number" id="pijnscore" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="kilometers">Kilometers gelopen</label>
-    <input type="number" id="kilometers" min="0" step="0.1" />
-  </div>
-  <!-- extra parameters -->
-  <div class="card">
-    <label for="energielevel">Energielevel (0–10)</label>
-    <input type="number" id="energielevel" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="rusthartslag">Rusthartslag (bpm)</label>
-    <input type="number" id="rusthartslag" min="30" max="220" />
-  </div>
-  <div class="card">
-    <label for="spiervermoeidheid">Spiervermoeidheid benen (0–10)</label>
-    <input type="number" id="spiervermoeidheid" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="stressniveau">Stressniveau (0–10)</label>
-    <input type="number" id="stressniveau" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="voeding">Voeding op orde (0–10)</label>
-    <input type="number" id="voeding" min="0" max="10" />
-  </div>
-  <div class="card">
-    <label for="slaaptijd">Slaaptijd (uur)</label>
-    <input type="number" id="slaaptijd" min="0" step="0.1" />
-  </div>
-  <div class="card">
-    <label for="opmerking">Opmerking (optioneel)</label>
-    <input type="text" id="opmerking" placeholder="Bijv. extra hersteltijd, pijn detail..." />
-  </div>
+<div class="section-title">🧠 Lichamelijke status</div>
+<div class="card"><label for="slaapkwaliteit">Slaapkwaliteit (0–10)</label><input type="number" id="slaapkwaliteit" min="0" max="10"></div>
+<div class="card"><label for="ochtendstijfheid">Ochtendstijfheid (0–10)</label><input type="number" id="ochtendstijfheid" min="0" max="10"></div>
+<div class="card"><label for="pijnscore">Pijnscore voeten (0–10)</label><input type="number" id="pijnscore" min="0" max="10"></div>
+<div class="card"><label for="energielevel">Energielevel (0–10)</label><input type="number" id="energielevel" min="0" max="10"></div>
+<div class="card"><label for="spiervermoeidheid">Spiervermoeidheid benen (0–10)</label><input type="number" id="spiervermoeidheid" min="0" max="10"></div>
+<div class="card"><label for="rusthartslag">Rusthartslag (bpm)</label><input type="number" id="rusthartslag" min="30" max="220"></div>
+
+<div class="section-title">🏃 Trainingsbelasting</div>
+<div class="card"><label for="kilometers">Kilometers gelopen</label><input type="number" id="kilometers" min="0" step="0.1"></div>
+<div class="card"><label for="trainingType">Type training</label><select id="trainingType">
+<option value="Rustdag">Rustdag</option><option value="DL1">DL1</option><option value="DL2">DL2</option><option value="Tempoloop">Tempoloop</option>
+<option value="Interval">Interval</option><option value="Alternatief">Alternatief</option><option value="Wedstrijd">Wedstrijd</option>
+</select></div>
+<div class="card"><label for="duurTraining">Duur training (minuten)</label><input type="number" id="duurTraining" min="0" step="1"></div>
+<div class="card"><label>Krachttraining gedaan?</label><div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" id="krachtTraining"><label class="small" for="krachtTraining">Ja</label></div></div>
+
+<div class="section-title">🧘 Herstel & leefstijl</div>
+<div class="card"><label for="stressniveau">Stressniveau (0–10)</label><input type="number" id="stressniveau" min="0" max="10"></div>
+<div class="card"><label for="voeding">Voeding op orde (0–10)</label><input type="number" id="voeding" min="0" max="10"></div>
+<div class="card"><label for="slaaptijd">Slaaptijd (uur)</label><input type="number" id="slaaptijd" min="0" step="0.1"></div>
+<div class="card"><label for="opmerking">Opmerking (optioneel)</label><input type="text" id="opmerking" placeholder="Bijv. extra hersteltijd, pijn detail..."></div>
 </form>
 
 <div class="chart-area">
-  <div class="chart-controls">
-    <div class="chart-checkboxes card" style="display:flex; gap:10px; align-items:center;">
-      <div class="small muted">Toon lijnen:</div>
-      <div id="checkboxContainer" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
-    </div>
-    <div style="flex:1"></div>
-    <div class="muted small">Periode:</div>
-    <select id="periodSelectTop" class="small" style="padding:6px;border-radius:6px;border:1px solid #ddd;">
-      <option value="7">7 dagen</option>
-      <option value="30">30 dagen</option>
-      <option value="all" selected>Alle data</option>
-    </select>
-  </div>
+<div class="chart-controls">
+<div class="chart-checkboxes card" style="display:flex;gap:10px;align-items:center;">
+<div class="small muted">Toon lijnen:</div>
+<div id="checkboxContainer" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+</div>
+<div style="flex:1"></div>
+<div class="muted small">Periode:</div>
+<select id="periodSelectTop" class="small" style="padding:6px;border-radius:6px;border:1px solid #ddd;">
+<option value="7">7 dagen</option><option value="30">30 dagen</option><option value="all" selected>Alle data</option>
+</select>
+</div>
 
-  <div class="chart-container">
-    <canvas id="trendChart"></canvas>
-    <button id="fullscreenBtn" title="Volledig scherm">⛶ Volledig scherm</button>
-  </div>
+<div class="chart-container">
+<canvas id="trendChart"></canvas>
+<button id="fullscreenBtn" title="Volledig scherm">⛶ Volledig scherm</button>
 </div>
 
 <div class="table-wrap" style="margin-top:16px;">
-  <table id="logTable">
-    <thead>
-      <tr>
-        <th>Datum</th>
-        <th>Pijn</th>
-        <th>Km</th>
-        <th>Slaap</th>
-        <th>Acties</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<table id="logTable">
+<thead>
+<tr>
+<th>Datum</th><th>Pijn</th><th>Km</th><th>Slaap</th><th>Acties</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 </div>
 
 <div class="overlay" id="chartOverlay">
-  <div class="overlay-content">
-    <div class="overlay-top">
-      <div style="font-weight:700">Trendoverzicht — fullscreen</div>
-      <div class="legend-controls" id="overlayCheckboxes"></div>
-      <div>
-        <button id="closeOverlay" class="small-btn" style="background:#c0392b;color:white;">Sluit (ESC)</button>
-      </div>
-    </div>
-    <div class="overlay-canvas">
-      <canvas id="fullscreenChart"></canvas>
-    </div>
-  </div>
+<div class="overlay-content">
+<div class="overlay-top">
+<div style="font-weight:700">Trendoverzicht — fullscreen</div>
+<div class="legend-controls" id="overlayCheckboxes"></div>
+<div><button id="closeOverlay" class="small-btn" style="background:#c0392b;color:white;">Sluit (ESC)</button></div>
+</div>
+<div class="overlay-canvas"><canvas id="fullscreenChart"></canvas></div>
+</div>
 </div>
 
 <script>
-/***********************
- * CONFIG
- ***********************/
-const WEBAPP_URL = 'https://script.google.com/macros/s/.../exec'; // vul je eigen Apps Script URL in
-const paramConfig = [
-  { id:'slaap', label:'Slaapkwaliteit', field:'slaap', color:'#2980b9', visible:true },
-  { id:'stijfheid', label:'Ochtendstijfheid', field:'stijfheid', color:'#e67e22', visible:true },
-  { id:'pijn', label:'Pijnscore voeten', field:'pijn', color:'#c0392b', visible:true },
-  { id:'km', label:'Kilometers', field:'km', color:'#27ae60', visible:true },
-  { id:'energie', label:'Energielevel', field:'energie', color:'#8e44ad', visible:false },
-  { id:'hr', label:'Rusthartslag', field:'hr', color:'#2c3e50', visible:false },
-  { id:'spier', label:'Spiervermoeidheid', field:'spier', color:'#d35400', visible:false },
-  { id:'stress', label:'Stressniveau', field:'stress', color:'#7f8c8d', visible:false },
-  { id:'voeding', label:'Voeding op orde', field:'voeding', color:'#16a085', visible:false }
+const GITHUB_PROXY='YOUR_APPS_SCRIPT_PROXY_URL'; // Apps Script endpoint (veilig)
+const paramConfig=[
+{id:'slaap',field:'slaap',label:'Slaapkwaliteit',color:'#2980b9',axis:'yScores',visible:true},
+{id:'stijfheid',field:'stijfheid',label:'Ochtendstijfheid',color:'#e67e22',axis:'yScores',visible:true},
+{id:'pijn',field:'pijn',label:'Pijnscore',color:'#c0392b',axis:'yScores',visible:true},
+{id:'energie',field:'energie',label:'Energielevel',color:'#8e44ad',axis:'yScores',visible:false},
+{id:'spier',field:'spier',label:'Spiervermoeidheid',color:'#d35400',axis:'yScores',visible:false},
+{id:'stress',field:'stress',label:'Stressniveau',color:'#7f8c8d',axis:'yScores',visible:false},
+{id:'voeding',field:'voeding',label:'Voeding',color:'#16a085',axis:'yScores',visible:false},
+{id:'km',field:'km',label:'Kilometers',color:'#27ae60',axis:'yKM',visible:true},
+{id:'duur',field:'duur',label:'Duur',color:'#f39c12',axis:'yMin',visible:false},
+{id:'hr',field:'hr',label:'Rusthartslag',color:'#2c3e50',axis:'yHR',visible:false}
 ];
-
-/***********************
- * ELEMENTS
- ***********************/
-const entryDate = document.getElementById('entryDate');
-const inputs = {
-  slaap: document.getElementById('slaapkwaliteit'),
-  stijfheid: document.getElementById('ochtendstijfheid'),
-  pijn: document.getElementById('pijnscore'),
-  km: document.getElementById('kilometers'),
-  energie: document.getElementById('energielevel'),
-  hr: document.getElementById('rusthartslag'),
-  spier: document.getElementById('spiervermoeidheid'),
-  stress: document.getElementById('stressniveau'),
-  voeding: document.getElementById('voeding'),
-  slaaptijd: document.getElementById('slaaptijd'),
-  opmerking: document.getElementById('opmerking')
+const entryDate=document.getElementById('entryDate');
+const inputs={
+slaap:document.getElementById('slaapkwaliteit'),
+stijfheid:document.getElementById('ochtendstijfheid'),
+pijn:document.getElementById('pijnscore'),
+energie:document.getElementById('energielevel'),
+spier:document.getElementById('spiervermoeidheid'),
+km:document.getElementById('kilometers'),
+hr:document.getElementById('rusthartslag'),
+trainingType:document.getElementById('trainingType'),
+duur:document.getElementById('duurTraining'),
+kracht:document.getElementById('krachtTraining'),
+stress:document.getElementById('stressniveau'),
+voeding:document.getElementById('voeding'),
+slaaptijd:document.getElementById('slaaptijd'),
+opmerking:document.getElementById('opmerking')
 };
-const saveBtn = document.getElementById('saveBtn');
-const newBtn = document.getElementById('newBtn');
-const exportCsvBtn = document.getElementById('exportCsv');
-const tableBody = document.querySelector('#logTable tbody');
-const checkboxContainer = document.getElementById('checkboxContainer');
-const overlayCheckboxes = document.getElementById('overlayCheckboxes');
-const periodSelect = document.getElementById('periodSelect');
-const periodSelectTop = document.getElementById('periodSelectTop');
-const chartCanvas = document.getElementById('trendChart');
-const fullscreenCanvas = document.getElementById('fullscreenChart');
-const fullscreenBtn = document.getElementById('fullscreenBtn');
-const overlay = document.getElementById('chartOverlay');
-const closeOverlay = document.getElementById('closeOverlay');
+const saveBtn=document.getElementById('saveBtn');
+const newBtn=document.getElementById('newBtn');
+const exportCsvBtn=document.getElementById('exportCsv');
+const tableBody=document.querySelector('#logTable tbody');
+const checkboxContainer=document.getElementById('checkboxContainer');
+const overlayCheckboxes=document.getElementById('overlayCheckboxes');
+const periodSelect=document.getElementById('periodSelect');
+const periodSelectTop=document.getElementById('periodSelectTop');
+const chartCanvas=document.getElementById('trendChart');
+const fullscreenCanvas=document.getElementById('fullscreenChart');
+const fullscreenBtn=document.getElementById('fullscreenBtn');
+const overlay=document.getElementById('chartOverlay');
+const closeOverlay=document.getElementById('closeOverlay');
+let scores=[],editingDate=null,chart=null,fullscreenChart=null;
 
-/***********************
- * STATE
- ***********************/
-let scores = [];
-let chart = null;
-let fullscreenChart = null;
+function setDefaultDate(){const today=new Date();entryDate.value=today.toISOString().split('T')[0];}
+setDefaultDate();
 
-/***********************
- * UTILS
- ***********************/
-function setDefaultDate() {
-  const today = new Date().toISOString().slice(0,10);
-  entryDate.value = today;
-}
-
-function loadFormData(dateStr) {
-  const entry = scores.find(e => e.date === dateStr);
-  if(entry){
-    for(const key in inputs) if(inputs[key]) inputs[key].value = entry[key] ?? '';
-  } else {
-    for(const key in inputs) if(inputs[key]) inputs[key].value = '';
-  }
-}
-
-/***********************
- * FETCH / SAVE
- ***********************/
-async function fetchScoresFromGitHub() {
-  try{
-    const resp = await fetch(WEBAPP_URL);
-    return await resp.json();
-  } catch(e){ console.error('Fetch error:', e); return []; }
-}
-
-async function saveScoresToGitHub(data) {
-  try{
-    const resp = await fetch(WEBAPP_URL,{
-      method:'POST',
-      body: JSON.stringify(data)
-    });
-    return await resp.json();
-  } catch(e){ console.error('Save error:', e); return {status:'error'}; }
-}
-
-/***********************
- * TABLE & CHART
- ***********************/
-function renderTable() {
-  tableBody.innerHTML='';
-  const period = periodSelect.value==='all'?Infinity:parseInt(periodSelect.value);
-  const filtered = scores.slice(-period);
-  filtered.forEach(row=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${row.date}</td><td>${row.pijn||0}</td><td>${row.km||0}</td><td>${row.slaap||0}</td>
-    <td><button onclick="deleteEntry('${row.date}')">❌</button></td>`;
-    tableBody.appendChild(tr);
-  });
-}
-
-function renderChart() {
-  const labels = scores.map(s=>s.date);
-  const datasets = paramConfig.filter(p=>p.visible).map(p=>({
-    label:p.label,
-    data:scores.map(s=>s[p.field]||0),
-    borderColor:p.color,
-    backgroundColor:'transparent'
-  }));
-  if(chart) chart.destroy();
-  chart = new Chart(chartCanvas,{type:'line',data:{labels,datasets},options:{responsive:true}});
-}
-
-/***********************
- * EVENTS
- ***********************/
-saveBtn.addEventListener('click', async ()=>{
-  const dateStr = entryDate.value;
-  const entry = {date:dateStr};
-  for(const key in inputs) entry[key] = inputs[key].value || '';
-  const index = scores.findIndex(e=>e.date===dateStr);
-  if(index>=0) scores[index]=entry; else scores.push(entry);
-  await saveScoresToGitHub(scores);
-  renderTable(); renderChart();
+function renderCheckboxes(){
+checkboxContainer.innerHTML='';overlayCheckboxes.innerHTML='';
+paramConfig.forEach(pc=>{
+const id='chk_'+pc.id;
+const wrap=document.createElement('label');wrap.style.display='flex';wrap.style.alignItems='center';wrap.style.gap='6px';wrap.style.marginRight='6px';
+const chk=document.createElement('input');chk.type='checkbox';chk.id=id;chk.checked=pc.visible;chk.dataset.param=pc.field;
+chk.addEventListener('change',()=>{pc.visible=chk.checked;updateAllCharts();});
+const span=document.createElement('span');span.textContent=pc.label;span.style.fontWeight='600';span.style.color=pc.color;
+wrap.appendChild(chk);wrap.appendChild(span);checkboxContainer.appendChild(wrap);
+const wrap2=wrap.cloneNode(true);const chk2=wrap2.querySelector('input');chk2.addEventListener('change',()=>{pc.visible=chk2.checked;document.getElementById(id).checked=chk2.checked;updateAllCharts();});overlayCheckboxes.appendChild(wrap2);
 });
-
-newBtn.addEventListener('click', ()=>{setDefaultDate(); loadFormData(entryDate.value);});
-
-exportCsvBtn.addEventListener('click', ()=>{
-  const csv = ['Datum,'+paramConfig.map(p=>p.label).join(',')].concat(
-    scores.map(s=>[s.date,...paramConfig.map(p=>s[p.field]||'')].join(','))
-  ).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='scores.csv'; a.click(); URL.revokeObjectURL(url);
-});
-
-/***********************
- * INIT
- ***********************/
-async function init(){
-  setDefaultDate();
-  scores = await fetchScoresFromGitHub();
-  loadFormData(entryDate.value);
-  renderTable();
-  renderChart();
 }
-init();
+renderCheckboxes();
+
+// helpers
+function numberOrNull(v){if(v===''||v===null||v===undefined)return null;const n=Number(v);return isNaN(n)?null:n;}
+function formatDate(d){if(!(d instanceof Date))d=new Date(d);return d.toISOString().split('T')[0];}
+
+// CRUD
+function saveEntry(){
+const dateVal=entryDate.value;if(!dateVal){alert('Kies eerst een datum');return;}
+const newObj={date:dateVal,
+slaap:numberOrNull(inputs.slaap.value),
+stijfheid:numberOrNull(inputs.stijfheid.value),
+pijn:numberOrNull(inputs.pijn.value),
+energie:numberOrNull(inputs.energie.value),
+spier:numberOrNull(inputs.spier.value),
+km:numberOrNull(inputs.km.value),
+hr:numberOrNull(inputs.hr.value),
+trainingType:inputs.trainingType.value,
+duur:numberOrNull(inputs.duur.value),
+kracht:inputs.kracht.checked?1:0,
+stress:numberOrNull(inputs.stress.value),
+voeding:numberOrNull(inputs.voeding.value),
+slaaptijd:numberOrNull(inputs.slaaptijd.value),
+opmerking:inputs.opmerking.value||''
+};
+const idx=scores.findIndex(s=>s.date===dateVal);
+if(idx>=0)scores[idx]=newObj;else scores.push(newObj);
+scores.sort((a,b)=>a.date.localeCompare(b.date));
+syncToGitHub().then(()=>{renderTable();updateAllCharts();clearForm();editingDate=null;setDefaultDate();});
+}
+
+async function syncToGitHub(){
+try{await fetch(GITHUB_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scores})});}catch(e){console.error('GitHub sync failed',e);}
+}
+
+function clearForm(){for(let k in inputs){if(inputs[k].type==='checkbox')inputs[k].checked=false;else inputs[k].value='';}}
+function renderTable(){tableBody.innerHTML='';[...scores].sort((a,b)=>b.date.localeCompare(a.date)).forEach(row=>{
+const tr=document.createElement('tr');tr.innerHTML=`<td>${row.date}</td><td>${row.pijn??''}</td><td>${row.km??''}</td><td>${row.slaap??''}</td><td>
+<button class="small-btn edit-btn" data-date="${row.date}">Bewerken</button>
+<button class="small-btn del-btn" data-date="${row.date}">Verwijder</button>
+</td>`;tableBody.appendChild(tr);
+});
+document.querySelectorAll('.edit-btn').forEach(b=>{b.addEventListener('click',e=>startEdit(e.currentTarget.dataset.date));});
+document.querySelectorAll('.del-btn').forEach(b=>{b.addEventListener('click',e=>{if(confirm('Verwijder entry voor '+e.currentTarget.dataset.date+'?')){scores=scores.filter(s=>s.date!==e.currentTarget.dataset.date);syncToGitHub().then(()=>{renderTable();updateAllCharts();});}});});
+}
+
+function startEdit(d){const row=scores.find(s=>s.date===d);if(!row)return;
+entryDate.value=row.date;inputs.slaap.value=row.slaap??'';inputs.stijfheid.value=row.stijfheid??'';inputs.pijn.value=row.pijn??'';inputs.km.value=row.km??'';inputs.energie.value=row.energie??'';inputs.hr.value=row.hr??'';inputs.spier.value=row.spier??'';inputs.trainingType.value=row.trainingType||'Rustdag';inputs.duur.value=row.duur??'';inputs.kracht.checked=!!row.kracht;inputs.stress.value=row.stress??'';inputs.voeding.value=row.voeding??'';inputs.slaaptijd.value=row.slaaptijd??'';inputs.opmerking.value=row.opmerking??'';editingDate=row.date;window.scrollTo({top:0,behavior:'smooth'});}
+
+function exportCSV(){if(!scores.length){alert('Geen data');return;}
+const headers=['date','slaap','stijfheid','pijn','km','energie','hr','spier','trainingType','duur','kracht','stress','voeding','slaaptijd','opmerking'];
+const rows=scores.map(r=>headers.map(h=>(r[h]===null||r[h]===undefined)?'':r[h]));
+const csv=[headers.join(',')].concat(rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))).join('\n');
+const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='dagelijkse_scores.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);}
+exportCsvBtn.addEventListener('click',exportCSV);
+
+// Charts
+function getChartData(period='all'){let filtered=[...scores];if(period!=='all'){const cutoff=new Date();cutoff.setDate(cutoff.getDate()-Number(period));filtered=filtered.filter(d=>new Date(d.date)>=cutoff);}return filtered;}
+function updateAllCharts(){
+const data=getChartData(periodSelect.value);
+const labels=data.map(d=>d.date);
+const datasets=paramConfig.filter(pc=>pc.visible).map(pc=>({label:pc.label,data:data.map(r=>r[pc.field]),borderColor:pc.color,backgroundColor:pc.color+'33',tension:0.2,yAxisID:pc.axis,fill:false}));
+if(chart){chart.data.labels=labels;chart.data.datasets=datasets;chart.update();}else{chart=new Chart(chartCanvas,{type:'line',data:{labels,datasets},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{yScores:{type:'linear',position:'left'},yKM:{type:'linear',position:'right'},yMin:{type:'linear',position:'right'},yHR:{type:'linear',position:'right'}}});}
+if(fullscreenChart){fullscreenChart.data.labels=labels;fullscreenChart.data.datasets=datasets;fullscreenChart.update();}
+}
+periodSelect.addEventListener('change',updateAllCharts);
+periodSelectTop.addEventListener('change',()=>{periodSelect.value=periodSelectTop.value;updateAllCharts();});
+
+fullscreenBtn.addEventListener('click',()=>{overlay.classList.add('active');if(!fullscreenChart){fullscreenChart=new Chart(fullscreenCanvas,{type:'line',data:{labels:chart.data.labels,datasets:chart.data.datasets},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:chart.options.scales}});}});
+closeOverlay.addEventListener('click',()=>{overlay.classList.remove('active');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')overlay.classList.remove('active');});
+
+saveBtn.addEventListener('click',saveEntry);
+newBtn.addEventListener('click',()=>{clearForm();setDefaultDate();editingDate=null;});
 </script>
+</main>
 </body>
 </html>
