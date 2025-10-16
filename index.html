@@ -1,313 +1,41 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dagelijkse Score Tracker</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dagelijkse Score Tracker — Uitgebreid</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f4f4f4;
-    }
-
-    h1 {
-      text-align: center;
-      background: #2c3e50;
-      color: white;
-      padding: 15px 0;
-      margin: 0 0 20px 0;
-    }
-
-    form {
-      display: grid;
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background:#f5f7fa; color:#222; }
+    header { background:#2c3e50; color:white; padding:14px 12px; text-align:center; font-size:1.15rem; }
+    main { max-width:1100px; margin:18px auto; padding:0 12px 60px 12px; }
+    .top-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+    .date-wrap { flex:1 1 220px; }
+    .controls-wrap { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .small { font-size:0.9rem; color:#444; }
+    form.grid {
+      display:grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 0 10px;
+      gap:12px;
+      margin-top:12px;
     }
-
-    .field {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
+    .section-title { grid-column: 1 / -1; margin:8px 0 0 4px; font-weight:700; color:#34495e; display:flex; align-items:center; gap:8px;}
+    .card {
+      background:white; padding:12px; border-radius:8px; box-shadow:0 2px 6px rgba(20,30,40,0.06);
+      display:flex; flex-direction:column; gap:8px;
     }
+    label { font-weight:600; font-size:0.95rem; color:#2b3b46; }
+    input[type="number"], input[type="date"], select { padding:8px; font-size:1rem; border-radius:6px; border:1px solid #ddd; width:100%; }
+    input[type="checkbox"] { transform:scale(1.05); margin-right:6px; }
+    .btn { background:#2c3e50; color:white; border:none; padding:10px 14px; border-radius:7px; cursor:pointer; font-weight:600; }
+    .btn:hover { background:#1f2a32; }
+    .muted { color:#666; font-size:0.9rem; }
 
-    label {
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    input[type="number"] {
-      width: 100%;
-      padding: 8px;
-      font-size: 1rem;
-    }
-
-    button {
-      margin: 20px auto;
-      display: block;
-      padding: 10px 20px;
-      background: #2c3e50;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1a242f;
-    }
-
-    .chart-container {
-      position: relative;
-      max-width: 1000px;
-      margin: 30px auto;
-    }
-
-    #fullscreenBtn {
-      position: absolute;
-      top: -10px;
-      right: 0;
-      background: #2c3e50;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      padding: 5px 10px;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-
-    #fullscreenBtn:hover {
-      background: #1a242f;
-    }
-
-    canvas {
-      width: 100%;
-      cursor: default;
-    }
-
-    /* Overlay voor fullscreen grafiek */
-    .overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-
-    .overlay.active {
-      display: flex;
-    }
-
-    .overlay-content {
-      position: relative;
-      background: white;
-      border-radius: 8px;
-      width: 95vw;
-      height: 90vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-    }
-
-    .overlay canvas {
-      flex: 1;
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    .close-btn {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 1.5rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      z-index: 1000;
-    }
-  </style>
-</head>
-<body>
-
-  <h1>Dagelijkse Score Tracker</h1>
-
-  <form id="scoreForm">
-    <div class="field">
-      <label for="slaapkwaliteit">Slaapkwaliteit (0–10)</label>
-      <input type="number" id="slaapkwaliteit" name="slaapkwaliteit" min="0" max="10" required>
-    </div>
-    <div class="field">
-      <label for="ochtendstijfheid">Ochtendstijfheid (0–10)</label>
-      <input type="number" id="ochtendstijfheid" name="ochtendstijfheid" min="0" max="10" required>
-    </div>
-    <div class="field">
-      <label for="pijnscore">Pijnscore voeten (0–10)</label>
-      <input type="number" id="pijnscore" name="pijnscore" min="0" max="10" required>
-    </div>
-    <div class="field">
-      <label for="kilometers">Kilometers gelopen vandaag</label>
-      <input type="number" id="kilometers" name="kilometers" min="0" step="0.1" required>
-    </div>
-  </form>
-
-  <button type="button" id="saveBtn">Opslaan</button>
-
-  <div class="chart-container">
-    <canvas id="trendChart"></canvas>
-    <button id="fullscreenBtn">⛶ Volledig scherm</button>
-  </div>
-
-  <!-- Fullscreen overlay -->
-  <div class="overlay" id="chartOverlay">
-    <div class="overlay-content">
-      <button class="close-btn" id="closeOverlay">&times;</button>
-      <canvas id="fullscreenChart"></canvas>
-    </div>
-  </div>
-
-  <script>
-    const slaapInput = document.getElementById('slaapkwaliteit');
-    const stijfheidInput = document.getElementById('ochtendstijfheid');
-    const pijnInput = document.getElementById('pijnscore');
-    const kmInput = document.getElementById('kilometers');
-    const saveBtn = document.getElementById('saveBtn');
-
-    const chartCanvas = document.getElementById('trendChart');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const overlay = document.getElementById('chartOverlay');
-    const closeOverlay = document.getElementById('closeOverlay');
-    const fullscreenCanvas = document.getElementById('fullscreenChart');
-
-    let scores = JSON.parse(localStorage.getItem('scores')) || [];
-    let chart, fullscreenChart;
-
-    saveBtn.addEventListener('click', () => {
-      const datum = new Date().toISOString().split('T')[0];
-
-      const nieuweScore = {
-        datum,
-        slaap: Number(slaapInput.value),
-        stijfheid: Number(stijfheidInput.value),
-        pijn: Number(pijnInput.value),
-        km: Number(kmInput.value),
-      };
-
-      const bestaandeIndex = scores.findIndex(s => s.datum === datum);
-      if (bestaandeIndex >= 0) {
-        scores[bestaandeIndex] = nieuweScore;
-      } else {
-        scores.push(nieuweScore);
-      }
-
-      localStorage.setItem('scores', JSON.stringify(scores));
-      updateChart(chartCanvas, false);
-      updateChart(fullscreenCanvas, true);
-
-      slaapInput.value = '';
-      stijfheidInput.value = '';
-      pijnInput.value = '';
-      kmInput.value = '';
-    });
-
-    function buildDataset(label, data, color, yAxis = 'y') {
-      return {
-        label,
-        data,
-        borderColor: color,
-        fill: false,
-        tension: 0.2,
-        yAxisID: yAxis,
-      };
-    }
-
-    function updateChart(canvas, isFullscreen) {
-      const ctx = canvas.getContext('2d');
-      const labels = scores.map(s => s.datum);
-      const slaapData = scores.map(s => s.slaap);
-      const stijfheidData = scores.map(s => s.stijfheid);
-      const pijnData = scores.map(s => s.pijn);
-      const kmData = scores.map(s => s.km);
-
-      const datasets = [
-        buildDataset('Slaapkwaliteit', slaapData, '#2980b9'),
-        buildDataset('Ochtendstijfheid', stijfheidData, '#e67e22'),
-        buildDataset('Pijnscore voeten', pijnData, '#c0392b'),
-        buildDataset('Kilometers', kmData, '#27ae60', 'km')
-      ];
-
-      const options = {
-        responsive: true,
-        maintainAspectRatio: !isFullscreen,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            display: true,
-            position: isFullscreen ? 'top' : 'bottom',
-            onClick: (e, legendItem, legend) => {
-              const index = legendItem.datasetIndex;
-              const ci = legend.chart;
-              const meta = ci.getDatasetMeta(index);
-              meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-              ci.update();
-            }
-          },
-          title: { display: isFullscreen, text: isFullscreen ? 'Trendoverzicht (Fullscreen)' : 'Trendoverzicht' }
-        },
-        scales: {
-          y: { beginAtZero: true, max: 10, title: { display: true, text: 'Scores (0–10)' } },
-          km: { beginAtZero: true, position: 'right', title: { display: true, text: 'Kilometers' } }
-        }
-      };
-
-      if (isFullscreen) {
-        if (fullscreenChart) fullscreenChart.destroy();
-        fullscreenChart = new Chart(ctx, { type: 'line', data: { labels, datasets }, options });
-      } else {
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, { type: 'line', data: { labels, datasets }, options });
-      }
-    }
-
-    // Fullscreen open/close
-    fullscreenBtn.addEventListener('click', () => {
-      overlay.classList.add('active');
-      updateChart(fullscreenCanvas, true);
-    });
-
-    closeOverlay.addEventListener('click', () => {
-      overlay.classList.remove('active');
-    });
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('active');
-    });
-
-    // ESC toets sluit fullscreen
-    document.addEventListener('keydown', (e) => {
-      if (e.key === "Escape" && overlay.classList.contains('active')) {
-        overlay.classList.remove('active');
-      }
-    });
-
-    updateChart(chartCanvas, false);
-  </script>
-
-</body>
-</html>
+    /* chart area */
+    .chart-area { margin-top:18px; display:flex; flex-direction:column; gap:8px; align-items:stretch; }
+    .chart-controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .chart-checkboxes { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .chart-container { position:relative; background:white; padding:12px; border-radius:8px; box-shadow:0 2px 6px rgba(20,30,40,0.06); }
+    #fullscreenBtn { position:absolute; top:12px; right:12px; z-index:5; background:#2c3e50; color:white; border:none;padding:6px 10px;border-radius:6px; cursor:pointer; }
+    #trendC
