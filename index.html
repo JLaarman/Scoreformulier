@@ -1,622 +1,271 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dagelijkse Score Tracker — Uitgebreid</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background:#f5f7fa; color:#222; }
-    header { background:#2c3e50; color:white; padding:14px 12px; text-align:center; font-size:1.15rem; }
-    main { max-width:1100px; margin:18px auto; padding:0 12px 60px 12px; }
-    .top-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
-    .date-wrap { flex:1 1 220px; }
-    .controls-wrap { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .small { font-size:0.9rem; color:#444; }
-    form.grid {
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-      margin-top:12px;
-    }
-    .section-title { grid-column: 1 / -1; margin:8px 0 0 4px; font-weight:700; color:#34495e; display:flex; align-items:center; gap:8px;}
-    .card {
-      background:white; padding:12px; border-radius:8px; box-shadow:0 2px 6px rgba(20,30,40,0.06);
-      display:flex; flex-direction:column; gap:8px;
-    }
-    label { font-weight:600; font-size:0.95rem; color:#2b3b46; }
-    input[type="number"], input[type="date"], select { padding:8px; font-size:1rem; border-radius:6px; border:1px solid #ddd; width:100%; }
-    input[type="checkbox"] { transform:scale(1.05); margin-right:6px; }
-    .btn { background:#2c3e50; color:white; border:none; padding:10px 14px; border-radius:7px; cursor:pointer; font-weight:600; }
-    .btn:hover { background:#1f2a32; }
-    .muted { color:#666; font-size:0.9rem; }
-
-    /* chart area */
-    .chart-area { margin-top:18px; display:flex; flex-direction:column; gap:8px; align-items:stretch; }
-    .chart-controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .chart-checkboxes { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .chart-container { position:relative; background:white; padding:12px; border-radius:8px; box-shadow:0 2px 6px rgba(20,30,40,0.06); }
-    #fullscreenBtn { position:absolute; top:12px; right:12px; z-index:5; background:#2c3e50; color:white; border:none;padding:6px 10px;border-radius:6px; cursor:pointer; }
-    #trendChart { width:100%; height:300px; }
-
-    /* table */
-    .table-wrap { margin-top:16px; overflow:auto; background:white; border-radius:8px; box-shadow:0 2px 6px rgba(20,30,40,0.06); }
-    table { width:100%; border-collapse:collapse; font-size:0.95rem; }
-    th, td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; }
-    th { background:#fafafa; font-weight:700; color:#34495e; position:sticky; top:0; }
-    .small-btn { padding:6px 8px; border-radius:6px; border:none; cursor:pointer; font-weight:600; }
-    .edit-btn { background:#2980b9; color:#fff; }
-    .del-btn { background:#c0392b; color:#fff; }
-    .csv-btn { background:#27ae60; color:#fff; }
-
-    /* fullscreen overlay */
-    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; }
-    .overlay.active { display:flex; }
-    .overlay-content { background:white; width:95vw; height:92vh; border-radius:8px; padding:12px; display:flex; flex-direction:column; }
-    .overlay-top { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .overlay-top .legend-controls { display:flex; gap:8px; flex-wrap:wrap; }
-    .overlay-canvas { flex:1; margin-top:8px; }
-
-    @media (max-width:720px) {
-      form.grid { grid-template-columns: 1fr; }
-      .top-row { flex-direction:column; align-items:flex-start; }
-      .chart-controls { flex-direction:column; align-items:flex-start; }
-      #trendChart { height:260px; }
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dagelijkse Score Tracker — Uitgebreid</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box;}
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f5f7fa;color:#222;}
+header{background:#2c3e50;color:white;padding:14px 12px;text-align:center;font-size:1.15rem;}
+main{max-width:1100px;margin:18px auto;padding:0 12px 60px 12px;}
+.top-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.date-wrap{flex:1 1 220px;}
+.controls-wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.small{font-size:0.9rem;color:#444;}
+form.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.section-title{grid-column:1/-1;margin:8px 0 0 4px;font-weight:700;color:#34495e;display:flex;align-items:center;gap:8px;}
+.card{background:white;padding:12px;border-radius:8px;box-shadow:0 2px 6px rgba(20,30,40,0.06);display:flex;flex-direction:column;gap:8px;}
+label{font-weight:600;font-size:0.95rem;color:#2b3b46;}
+input[type="number"], input[type="date"], select{padding:8px;font-size:1rem;border-radius:6px;border:1px solid #ddd;width:100%;}
+input[type="checkbox"]{transform:scale(1.05);margin-right:6px;}
+.btn{background:#2c3e50;color:white;border:none;padding:10px 14px;border-radius:7px;cursor:pointer;font-weight:600;}
+.btn:hover{background:#1f2a32;}
+.muted{color:#666;font-size:0.9rem;}
+.chart-area{margin-top:18px;display:flex;flex-direction:column;gap:8px;align-items:stretch;}
+.chart-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.chart-checkboxes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.chart-container{position:relative;background:white;padding:12px;border-radius:8px;box-shadow:0 2px 6px rgba(20,30,40,0.06);}
+#fullscreenBtn{position:absolute;top:12px;right:12px;z-index:5;background:#2c3e50;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
+#trendChart{width:100%;height:300px;}
+.table-wrap{margin-top:16px;overflow:auto;background:white;border-radius:8px;box-shadow:0 2px 6px rgba(20,30,40,0.06);}
+table{width:100%;border-collapse:collapse;font-size:0.95rem;}
+th, td{padding:8px 10px;border-bottom:1px solid #eee;text-align:left;}
+th{background:#fafafa;font-weight:700;color:#34495e;position:sticky;top:0;}
+.small-btn{padding:6px 8px;border-radius:6px;border:none;cursor:pointer;font-weight:600;}
+.edit-btn{background:#2980b9;color:#fff;}
+.del-btn{background:#c0392b;color:#fff;}
+.csv-btn{background:#27ae60;color:#fff;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;justify-content:center;align-items:center;}
+.overlay.active{display:flex;}
+.overlay-content{background:white;width:95vw;height:92vh;border-radius:8px;padding:12px;display:flex;flex-direction:column;}
+.overlay-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.overlay-top .legend-controls{display:flex;gap:8px;flex-wrap:wrap;}
+.overlay-canvas{flex:1;margin-top:8px;}
+@media(max-width:720px){form.grid{grid-template-columns:1fr;}.top-row{flex-direction:column;align-items:flex-start;}.chart-controls{flex-direction:column;align-items:flex-start;}#trendChart{height:260px;}}
+</style>
 </head>
 <body>
-  <header>Dagelijkse Score Tracker — Uitgebreid</header>
+<header>Dagelijkse Score Tracker — Uitgebreid</header>
+<main>
+<div class="top-row">
+<div class="date-wrap card">
+<label for="entryDate">Datum</label>
+<input type="date" id="entryDate" />
+<div class="muted small">Kies datum (default = vandaag). Bestaande datum wordt overschreven.</div>
+</div>
+<div class="controls-wrap">
+<button id="saveBtn" class="btn">Opslaan</button>
+<button id="newBtn" class="btn" style="background:#7f8c8d">Nieuw</button>
+<button id="exportCsv" class="small-btn csv-btn">Export CSV</button>
+<select id="periodSelect" class="small" title="Periode filter" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+<option value="7">Laatste 7 dagen</option>
+<option value="30">Laatste 30 dagen</option>
+<option value="all" selected>Alle data</option>
+</select>
+</div>
+</div>
 
-  <main>
-    <div class="top-row">
-      <div class="date-wrap card">
-        <label for="entryDate">Datum</label>
-        <input type="date" id="entryDate" />
-        <div class="muted small">Kies datum (default = vandaag). Als de datum al bestaat wordt de entry overschreven.</div>
-      </div>
+<form class="grid" id="mainForm" onsubmit="return false;">
+<div class="section-title">🧠 Lichamelijke status</div>
+<div class="card"><label for="slaapkwaliteit">Slaapkwaliteit (0–10)</label><input type="number" id="slaapkwaliteit" min="0" max="10" /></div>
+<div class="card"><label for="ochtendstijfheid">Ochtendstijfheid (0–10)</label><input type="number" id="ochtendstijfheid" min="0" max="10" /></div>
+<div class="card"><label for="pijnscore">Pijnscore voeten (0–10)</label><input type="number" id="pijnscore" min="0" max="10" /></div>
+<div class="card"><label for="energielevel">Energielevel (0–10)</label><input type="number" id="energielevel" min="0" max="10" /></div>
+<div class="card"><label for="spiervermoeidheid">Spiervermoeidheid benen (0–10)</label><input type="number" id="spiervermoeidheid" min="0" max="10" /></div>
+<div class="card"><label for="rusthartslag">Rusthartslag (bpm)</label><input type="number" id="rusthartslag" min="30" max="220" /></div>
 
-      <div class="controls-wrap">
-        <button id="saveBtn" class="btn">Opslaan</button>
-        <button id="newBtn" class="btn" style="background:#7f8c8d">Nieuw</button>
-        <button id="exportCsv" class="small-btn csv-btn">Export CSV</button>
-        <select id="periodSelect" class="small" title="Periode filter" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
-          <option value="7">Laatste 7 dagen</option>
-          <option value="30">Laatste 30 dagen</option>
-          <option value="all" selected>Alle data</option>
-        </select>
-      </div>
-    </div>
+<div class="section-title">🏃 Trainingsbelasting</div>
+<div class="card"><label for="kilometers">Kilometers gelopen</label><input type="number" id="kilometers" min="0" step="0.1" /></div>
+<div class="card"><label for="duurTraining">Duur training (minuten)</label><input type="number" id="duurTraining" min="0" step="1" /></div>
+<div class="card"><label for="trainingType">Type training</label>
+<select id="trainingType">
+<option value="Rustdag">Rustdag</option>
+<option value="DL1">DL1 (rustig)</option>
+<option value="DL2">DL2 (duur)</option>
+<option value="Tempoloop">Tempoloop</option>
+<option value="Interval">Interval</option>
+<option value="Alternatief">Alternatief</option>
+<option value="Wedstrijd">Wedstrijd</option>
+</select>
+</div>
+<div class="card"><label>Krachttraining gedaan?</label><div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" id="krachtTraining" /><label for="krachtTraining" class="small">Ja</label></div></div>
 
-    <form class="grid" id="mainForm" onsubmit="return false;">
-      <div class="section-title">🧠 Lichamelijke status</div>
+<div class="section-title">🧘 Herstel & leefstijl</div>
+<div class="card"><label for="stressniveau">Stressniveau (0–10)</label><input type="number" id="stressniveau" min="0" max="10" /></div>
+<div class="card"><label for="voeding">Voeding op orde (0–10)</label><input type="number" id="voeding" min="0" max="10" /></div>
+<div class="card"><label for="slaaptijd">Slaaptijd (uur)</label><input type="number" id="slaaptijd" min="0" step="0.1" /></div>
+<div class="card"><label for="opmerking">Opmerking (optioneel)</label><input type="text" id="opmerking" placeholder="Bijv. extra hersteltijd, pijn detail..." /></div>
+</form>
 
-      <div class="card">
-        <label for="slaapkwaliteit">Slaapkwaliteit (0–10)</label>
-        <input type="number" id="slaapkwaliteit" min="0" max="10" />
-      </div>
+<div class="chart-area">
+<div class="chart-controls">
+<div class="chart-checkboxes card" style="display:flex; gap:10px; align-items:center;">
+<div class="small muted">Toon lijnen:</div>
+<div id="checkboxContainer" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+</div>
+<div style="flex:1"></div>
+<div class="muted small">Periode:</div>
+<select id="periodSelectTop" class="small" style="padding:6px;border-radius:6px;border:1px solid #ddd;">
+<option value="7">7 dagen</option>
+<option value="30">30 dagen</option>
+<option value="all" selected>Alle data</option>
+</select>
+</div>
+<div class="chart-container">
+<canvas id="trendChart"></canvas>
+<button id="fullscreenBtn" title="Volledig scherm">⛶ Volledig scherm</button>
+</div>
+</div>
 
-      <div class="card">
-        <label for="ochtendstijfheid">Ochtendstijfheid (0–10)</label>
-        <input type="number" id="ochtendstijfheid" min="0" max="10" />
-      </div>
+<div class="table-wrap" style="margin-top:16px;">
+<table id="logTable">
+<thead>
+<tr>
+<th>Datum</th><th>Type</th><th>Pijn</th><th>Km</th><th>Hartslag</th><th>Slaap</th><th>Acties</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
 
-      <div class="card">
-        <label for="energielevel">Energielevel (0–10)</label>
-        <input type="number" id="energielevel" min="0" max="10" />
-      </div>
+<div class="overlay" id="chartOverlay">
+<div class="overlay-content">
+<div class="overlay-top">
+<div style="font-weight:700">Trendoverzicht — fullscreen</div>
+<div class="legend-controls" id="overlayCheckboxes"></div>
+<div><button id="closeOverlay" class="small-btn" style="background:#c0392b;color:white;">Sluit (ESC)</button></div>
+</div>
+<div class="overlay-canvas"><canvas id="fullscreenChart"></canvas></div>
+</div>
+</div>
 
-      <div class="card">
-        <label for="rusthartslag">Rusthartslag (bpm)</label>
-        <input type="number" id="rusthartslag" min="30" max="220" />
-      </div>
+<script>
+const WEBAPP_URL = 'https://script.google.com/macros/s/JE_UNIEKE_ID/exec';
 
-      <div class="card">
-        <label for="spiervermoeidheid">Spiervermoeidheid benen (0–10)</label>
-        <input type="number" id="spiervermoeidheid" min="0" max="10" />
-      </div>
+const entryDate = document.getElementById('entryDate');
+const inputs = {
+slaap: document.getElementById('slaapkwaliteit'),
+stijfheid: document.getElementById('ochtendstijfheid'),
+pijn: document.getElementById('pijnscore'),
+km: document.getElementById('kilometers'),
+energie: document.getElementById('energielevel'),
+hr: document.getElementById('rusthartslag'),
+spier: document.getElementById('spiervermoeidheid'),
+trainingType: document.getElementById('trainingType'),
+duur: document.getElementById('duurTraining'),
+kracht: document.getElementById('krachtTraining'),
+stress: document.getElementById('stressniveau'),
+voeding: document.getElementById('voeding'),
+slaaptijd: document.getElementById('slaaptijd'),
+opmerking: document.getElementById('opmerking')
+};
+const saveBtn = document.getElementById('saveBtn');
+const newBtn = document.getElementById('newBtn');
+const exportCsvBtn = document.getElementById('exportCsv');
+const tableBody = document.querySelector('#logTable tbody');
+const checkboxContainer = document.getElementById('checkboxContainer');
+const overlayCheckboxes = document.getElementById('overlayCheckboxes');
+const periodSelect = document.getElementById('periodSelect');
+const periodSelectTop = document.getElementById('periodSelectTop');
+const chartCanvas = document.getElementById('trendChart');
+const fullscreenCanvas = document.getElementById('fullscreenChart');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const overlay = document.getElementById('chartOverlay');
+const closeOverlay = document.getElementById('closeOverlay');
 
-      <div class="card">
-        <label for="pijnscore">Pijnscore voeten (0–10)</label>
-        <input type="number" id="pijnscore" min="0" max="10" />
-      </div>
+let scores = [];
+let editingDate = null;
+let chart = null;
+let fullscreenChart = null;
 
-      <div class="section-title">🏃 Trainingsbelasting</div>
+// --- helpers
+function numberOrNull(v){return v===''||v===null||v===undefined?null:Number(v);}
+function setDefaultDate(){const today=new Date();entryDate.value=today.toISOString().split('T')[0];}
+setDefaultDate();
 
-      <div class="card">
-        <label for="kilometers">Kilometers gelopen</label>
-        <input type="number" id="kilometers" min="0" step="0.1" />
-      </div>
+// --- fetch/save server
+async function fetchScores(){try{const res=await fetch(WEBAPP_URL);if(!res.ok)throw new Error('Kon data niet ophalen');return await res.json();}catch(e){console.error(e);return []}}
+async function saveScoresToServer(scores){try{const res=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(scores)});if(!res.ok)throw new Error('Kon data niet opslaan');return await res.json();}catch(e){console.error(e);alert('Opslaan mislukt: '+e.message);}}
 
-      <div class="card">
-        <label for="trainingType">Type training</label>
-        <select id="trainingType">
-          <option value="Rustdag">Rustdag</option>
-          <option value="DL1">DL1 (rustig)</option>
-          <option value="DL2">DL2 (duur)</option>
-          <option value="Tempoloop">Tempoloop</option>
-          <option value="Interval">Interval</option>
-          <option value="Alternatief">Alternatief</option>
-          <option value="Wedstrijd">Wedstrijd</option>
-        </select>
-      </div>
+// --- CRUD
+async function saveEntry(){
+  const dateVal = entryDate.value;if(!dateVal){alert('Kies eerst een datum');return;}
+  const newObj={date:dateVal,slaap:numberOrNull(inputs.slaap.value),stijfheid:numberOrNull(inputs.stijfheid.value),pijn:numberOrNull(inputs.pijn.value),km:numberOrNull(inputs.km.value),energie:numberOrNull(inputs.energie.value),hr:numberOrNull(inputs.hr.value),spier:numberOrNull(inputs.spier.value),trainingType:inputs.trainingType.value,duur:numberOrNull(inputs.duur.value),kracht:inputs.kracht.checked?1:0,stress:numberOrNull(inputs.stress.value),voeding:numberOrNull(inputs.voeding.value),slaaptijd:numberOrNull(inputs.slaaptijd.value),opmerking:inputs.opmerking.value||''};
+  scores=await fetchScores();
+  const idx=scores.findIndex(s=>s.date===dateVal);if(idx>=0)scores[idx]=newObj;else scores.push(newObj);
+  scores.sort((a,b)=>a.date.localeCompare(b.date));
+  await saveScoresToServer(scores);
+  renderTable();updateAllCharts();clearForm();editingDate=null;setDefaultDate();
+}
 
-      <div class="card">
-        <label for="duurTraining">Duur training (minuten)</label>
-        <input type="number" id="duurTraining" min="0" step="1" />
-      </div>
+function clearForm(){for(let k in inputs){if(inputs[k].type==='checkbox')inputs[k].checked=false;else inputs[k].value='';}}
 
-      <div class="card">
-        <label>Krachttraining gedaan?</label>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="checkbox" id="krachtTraining" />
-          <label for="krachtTraining" class="small">Ja</label>
-        </div>
-      </div>
+function renderTable(){
+tableBody.innerHTML='';
+const data=[...scores].sort((a,b)=>b.date.localeCompare(a.date));
+data.forEach(row=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${row.date}</td><td>${row.trainingType||''}</td><td>${row.pijn??''}</td><td>${row.km??''}</td><td>${row.hr??''}</td><td>${row.slaap??''}</td><td><button class="small-btn edit-btn" data-date="${row.date}">Bewerken</button><button class="small-btn del-btn" data-date="${row.date}">Verwijder</button></td>`;
+  tableBody.appendChild(tr);
+});
+document.querySelectorAll('.edit-btn').forEach(b=>{b.addEventListener('click',e=>startEdit(e.currentTarget.dataset.date));});
+document.querySelectorAll('.del-btn').forEach(b=>{b.addEventListener('click',e=>{if(confirm('Verwijder entry voor '+e.currentTarget.dataset.date+'?')){scores=scores.filter(s=>s.date!==e.currentTarget.dataset.date);saveScoresToServer(scores);renderTable();updateAllCharts();}});});
+}
 
-      <div class="section-title">🧘 Herstel & leefstijl</div>
+function startEdit(dateStr){const row=scores.find(s=>s.date===dateStr);if(!row)return;entryDate.value=row.date;inputs.slaap.value=row.slaap??'';inputs.stijfheid.value=row.stijfheid??'';inputs.pijn.value=row.pijn??'';inputs.km.value=row.km??'';inputs.energie.value=row.energie??'';inputs.hr.value=row.hr??'';inputs.spier.value=row.spier??'';inputs.trainingType.value=row.trainingType||'Rustdag';inputs.duur.value=row.duur??'';inputs.kracht.checked=!!row.kracht;inputs.stress.value=row.stress??'';inputs.voeding.value=row.voeding??'';inputs.slaaptijd.value=row.slaaptijd??'';inputs.opmerking.value=row.opmerking??'';editingDate=row.date;window.scrollTo({top:0,behavior:'smooth'});}
 
-      <div class="card">
-        <label for="stressniveau">Stressniveau (0–10)</label>
-        <input type="number" id="stressniveau" min="0" max="10" />
-      </div>
+// --- CSV export
+function exportCSV(){if(!scores.length){alert('Geen data om te exporteren');return;}
+const headers=['date','slaap','stijfheid','pijn','km','energie','hr','spier','trainingType','duur','kracht','stress','voeding','slaaptijd','opmerking'];
+const rows=scores.map(r=>headers.map(h=>r[h]===null||r[h]===undefined?'':r[h]));
+const csv=[headers.join(',')].concat(rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))).join('\n');
+const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='dagelijkse_scores.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
 
-      <div class="card">
-        <label for="voeding">Voeding op orde (0–10)</label>
-        <input type="number" id="voeding" min="0" max="10" />
-      </div>
+// --- charts
+const paramConfig=[
+{id:'slaap',label:'Slaapkwaliteit',field:'slaap',color:'#2980b9',axis:'yScores',visible:true},
+{id:'stijfheid',label:'Ochtendstijfheid',field:'stijfheid',color:'#e67e22',axis:'yScores',visible:true},
+{id:'pijn',label:'Pijnscore voeten',field:'pijn',color:'#c0392b',axis:'yScores',visible:true},
+{id:'energie',label:'Energielevel',field:'energie',color:'#8e44ad',axis:'yScores',visible:false},
+{id:'spier',label:'Spiervermoeidheid',field:'spier',color:'#d35400',axis:'yScores',visible:false},
+{id:'stress',label:'Stressniveau',field:'stress',color:'#7f8c8d',axis:'yScores',visible:false},
+{id:'voeding',label:'Voeding op orde',field:'voeding',color:'#16a085',axis:'yScores',visible:false},
+{id:'km',label:'Kilometers',field:'km',color:'#27ae60',axis:'yKM',visible:true},
+{id:'duur',label:'Duur (min)',field:'duur',color:'#f39c12',axis:'yMin',visible:false},
+{id:'hr',label:'Rusthartslag',field:'hr',color:'#34495e',axis:'yHR',visible:false},
+{id:'slaaptijd',label:'Slaaptijd',field:'slaaptijd',color:'#1abc9c',axis:'yHrs',visible:false}
+];
 
-      <div class="card">
-        <label for="slaaptijd">Slaaptijd (uur)</label>
-        <input type="number" id="slaaptijd" min="0" step="0.1" />
-      </div>
+function createCheckboxes(){checkboxContainer.innerHTML='';overlayCheckboxes.innerHTML='';paramConfig.forEach(p=>{const cb=document.createElement('label');cb.innerHTML=`<input type="checkbox" data-id="${p.id}" ${p.visible?'checked':''}/> ${p.label}`;checkboxContainer.appendChild(cb);const cb2=cb.cloneNode(true);overlayCheckboxes.appendChild(cb2);});document.querySelectorAll('#checkboxContainer input, #overlayCheckboxes input').forEach(cb=>cb.addEventListener('change',e=>{const id=e.target.dataset.id;const cfg=paramConfig.find(p=>p.id===id);cfg.visible=e.target.checked;updateAllCharts();}));}
 
-      <div class="card">
-        <label for="opmerking">Opmerking (optioneel)</label>
-        <input type="text" id="opmerking" placeholder="Bijv. extra hersteltijd, pijn detail..." />
-      </div>
-    </form>
+// --- chart update
+async function updateAllCharts(){
+scores=await fetchScores();
+const filteredScores=scores.filter(s=>{if(periodSelect.value==='all')return true;const days=Number(periodSelect.value);const diff=(new Date()-new Date(s.date))/(1000*60*60*24);return diff<=days;});
+const labels=filteredScores.map(s=>s.date);
+const datasets=paramConfig.filter(p=>p.visible).map(p=>{
+return {label:p.label,data:filteredScores.map(s=>s[p.field]),borderColor:p.color,backgroundColor:'transparent',tension:0.2,yAxisID:p.axis};
+});
+const yAxes=[{id:'yScores',type:'linear',position:'left',title:{display:true,text:'Scores (0–10)'}},{id:'yKM',type:'linear',position:'right',title:{display:true,text:'KM'}},{id:'yMin',type:'linear',position:'right',title:{display:true,text:'Duur min'},display:false},{id:'yHR',type:'linear',position:'right',title:{display:true,text:'Rusthartslag'},display:false},{id:'yHrs',type:'linear',position:'right',title:{display:true,text:'Slaaptijd'},display:false}];
+if(chart)chart.destroy();chart=new Chart(chartCanvas,{type:'line',data:{labels,datasets},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true}},scales:{yScores:{beginAtZero:true,min:0,max:10},yKM:{beginAtZero:true,display:true}}}});
+if(fullscreenChart)fullscreenChart.destroy();fullscreenChart=new Chart(fullscreenCanvas,{type:'line',data:{labels,datasets},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true}},scales:{yScores:{beginAtZero:true,min:0,max:10},yKM:{beginAtZero:true,display:true}}}});
+}
 
-    <!-- chart + controls -->
-    <div class="chart-area">
-      <div class="chart-controls">
-        <div class="chart-checkboxes card" style="display:flex; gap:10px; align-items:center;">
-          <!-- checkboxes are injected by JS -->
-          <div class="small muted">Toon lijnen:</div>
-          <div id="checkboxContainer" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
-        </div>
+saveBtn.addEventListener('click',saveEntry);
+newBtn.addEventListener('click',clearForm);
+exportCsvBtn.addEventListener('click',exportCSV);
+periodSelect.addEventListener('change',updateAllCharts);
+periodSelectTop.addEventListener('change',e=>{periodSelect.value=e.target.value;updateAllCharts();});
 
-        <div style="flex:1"></div>
+fullscreenBtn.addEventListener('click',()=>overlay.classList.add('active'));
+closeOverlay.addEventListener('click',()=>overlay.classList.remove('active'));
+window.addEventListener('keydown',e=>{if(e.key==='Escape')overlay.classList.remove('active');});
 
-        <div class="muted small">Periode:</div>
-        <select id="periodSelectTop" class="small" style="padding:6px;border-radius:6px;border:1px solid #ddd;">
-          <option value="7">7 dagen</option>
-          <option value="30">30 dagen</option>
-          <option value="all" selected>Alle data</option>
-        </select>
-      </div>
-
-      <div class="chart-container">
-        <canvas id="trendChart"></canvas>
-        <button id="fullscreenBtn" title="Volledig scherm">⛶ Volledig scherm</button>
-      </div>
-    </div>
-
-    <div class="table-wrap" style="margin-top:16px;">
-      <table id="logTable">
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th>Type</th>
-            <th>Pijn</th>
-            <th>Km</th>
-            <th>Hartslag</th>
-            <th>Slaap</th>
-            <th>Acties</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <!-- fullscreen overlay -->
-    <div class="overlay" id="chartOverlay">
-      <div class="overlay-content">
-        <div class="overlay-top">
-          <div style="font-weight:700">Trendoverzicht — fullscreen</div>
-          <div class="legend-controls" id="overlayCheckboxes"></div>
-          <div>
-            <button id="closeOverlay" class="small-btn" style="background:#c0392b;color:white;">Sluit (ESC)</button>
-          </div>
-        </div>
-        <div class="overlay-canvas">
-          <canvas id="fullscreenChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <script>
-    /***********************
-     * Data model & config *
-     ***********************/
-    const STORAGE_KEY = 'dagelijkse_scores_v2';
-
-    const paramConfig = [
-      // label, field, color, axis
-      { id:'slaap', label:'Slaapkwaliteit', field:'slaap', color:'#2980b9', axis:'yScores', visible:true },
-      { id:'stijfheid', label:'Ochtendstijfheid', field:'stijfheid', color:'#e67e22', axis:'yScores', visible:true },
-      { id:'pijn', label:'Pijnscore voeten', field:'pijn', color:'#c0392b', axis:'yScores', visible:true },
-      { id:'energie', label:'Energielevel', field:'energie', color:'#8e44ad', axis:'yScores', visible:false },
-      { id:'spier', label:'Spiervermoeidheid', field:'spier', color:'#d35400', axis:'yScores', visible:false },
-      { id:'stress', label:'Stressniveau', field:'stress', color:'#7f8c8d', axis:'yScores', visible:false },
-      { id:'voeding', label:'Voeding op orde', field:'voeding', color:'#16a085', axis:'yScores', visible:false },
-      // numeric axes
-      { id:'km', label:'Kilometers', field:'km', color:'#27ae60', axis:'yKM', visible:true },
-      { id:'duur', label:'Duur (min)', field:'duur', color:'#f39c12', axis:'yMin', visible:false },
-      { id:'hr', label:'Rusthartslag', field:'hr', color:'#2c3e50', axis:'yHR', visible:false }
-    ];
-
-    // elements
-    const entryDate = document.getElementById('entryDate');
-    const inputs = {
-      slaap: document.getElementById('slaapkwaliteit'),
-      stijfheid: document.getElementById('ochtendstijfheid'),
-      pijn: document.getElementById('pijnscore'),
-      km: document.getElementById('kilometers'),
-      energie: document.getElementById('energielevel'),
-      hr: document.getElementById('rusthartslag'),
-      spier: document.getElementById('spiervermoeidheid'),
-      trainingType: document.getElementById('trainingType'),
-      duur: document.getElementById('duurTraining'),
-      kracht: document.getElementById('krachtTraining'),
-      stress: document.getElementById('stressniveau'),
-      voeding: document.getElementById('voeding'),
-      slaaptijd: document.getElementById('slaaptijd'),
-      opmerking: document.getElementById('opmerking')
-    };
-    const saveBtn = document.getElementById('saveBtn');
-    const newBtn = document.getElementById('newBtn');
-    const exportCsvBtn = document.getElementById('exportCsv');
-    const tableBody = document.querySelector('#logTable tbody');
-    const checkboxContainer = document.getElementById('checkboxContainer');
-    const overlayCheckboxes = document.getElementById('overlayCheckboxes');
-    const periodSelect = document.getElementById('periodSelect');
-    const periodSelectTop = document.getElementById('periodSelectTop');
-    const chartCanvas = document.getElementById('trendChart');
-    const fullscreenCanvas = document.getElementById('fullscreenChart');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const overlay = document.getElementById('chartOverlay');
-    const closeOverlay = document.getElementById('closeOverlay');
-
-    // global state
-    let scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    let editingDate = null;
-    let chart = null;
-    let fullscreenChart = null;
-
-    // set default date = today
-    function setDefaultDate() {
-      const today = new Date();
-      const iso = today.toISOString().split('T')[0];
-      entryDate.value = iso;
-    }
-    setDefaultDate();
-
-    /*******************
-     * UI: checkboxes  *
-     *******************/
-    function renderCheckboxes() {
-      checkboxContainer.innerHTML = '';
-      overlayCheckboxes.innerHTML = '';
-      paramConfig.forEach(pc => {
-        const id = 'chk_' + pc.id;
-        const wrap = document.createElement('label');
-        wrap.style.display = 'flex';
-        wrap.style.alignItems = 'center';
-        wrap.style.gap = '6px';
-        wrap.style.marginRight = '6px';
-        const chk = document.createElement('input');
-        chk.type = 'checkbox';
-        chk.id = id;
-        chk.checked = pc.visible;
-        chk.dataset.param = pc.field;
-        chk.addEventListener('change', () => {
-          pc.visible = chk.checked;
-          updateAllCharts();
-        });
-        const span = document.createElement('span');
-        span.textContent = pc.label;
-        span.style.fontWeight = '600';
-        span.style.color = pc.color;
-        wrap.appendChild(chk);
-        wrap.appendChild(span);
-        checkboxContainer.appendChild(wrap);
-
-        // overlay checkboxes (fullscreen)
-        const wrap2 = wrap.cloneNode(true);
-        const chk2 = wrap2.querySelector('input');
-        chk2.addEventListener('change', () => {
-          pc.visible = chk2.checked;
-          // sync other checkboxes
-          document.getElementById(id).checked = chk2.checked;
-          updateAllCharts();
-        });
-        overlayCheckboxes.appendChild(wrap2);
-      });
-    }
-    renderCheckboxes();
-
-    /*******************
-     * Storage helpers  *
-     *******************/
-    function saveScoresToStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
-    }
-
-    function parseDateStr(s) { // YYYY-MM-DD -> Date
-      return new Date(s + 'T00:00:00');
-    }
-
-    /*******************
-     * CRUD operations  *
-     *******************/
-    function saveEntry() {
-      const dateVal = entryDate.value;
-      if (!dateVal) { alert('Kies eerst een datum'); return; }
-
-      const newObj = {
-        date: dateVal,
-        slaap: numberOrNull(inputs.slaap.value),
-        stijfheid: numberOrNull(inputs.stijfheid.value),
-        pijn: numberOrNull(inputs.pijn.value),
-        km: numberOrNull(inputs.km.value),
-        energie: numberOrNull(inputs.energie.value),
-        hr: numberOrNull(inputs.hr.value),
-        spier: numberOrNull(inputs.spier.value),
-        trainingType: inputs.trainingType.value,
-        duur: numberOrNull(inputs.duur.value),
-        kracht: inputs.kracht.checked ? 1 : 0,
-        stress: numberOrNull(inputs.stress.value),
-        voeding: numberOrNull(inputs.voeding.value),
-        slaaptijd: numberOrNull(inputs.slaaptijd.value),
-        opmerking: inputs.opmerking.value || ''
-      };
-
-      const idx = scores.findIndex(s => s.date === dateVal);
-      if (idx >= 0) scores[idx] = newObj;
-      else scores.push(newObj);
-
-      // sort ascending
-      scores.sort((a,b)=> a.date.localeCompare(b.date));
-      saveScoresToStorage();
-      renderTable();
-      updateAllCharts();
-      clearForm();
-      editingDate = null;
-      setDefaultDate();
-    }
-
-    function numberOrNull(v) {
-      if (v === '' || v === null || v === undefined) return null;
-      const n = Number(v);
-      return isNaN(n) ? null : n;
-    }
-
-    function clearForm() {
-      for (let k in inputs) {
-        if (inputs[k].type === 'checkbox') inputs[k].checked = false;
-        else inputs[k].value = '';
-      }
-    }
-
-    function renderTable() {
-      tableBody.innerHTML = '';
-      // render descending
-      const data = [...scores].sort((a,b)=> b.date.localeCompare(a.date));
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${row.date}</td>
-          <td>${row.trainingType || ''}</td>
-          <td>${row.pijn ?? ''}</td>
-          <td>${row.km ?? ''}</td>
-          <td>${row.hr ?? ''}</td>
-          <td>${row.slaap ?? ''}</td>
-          <td>
-            <button class="small-btn edit-btn" data-date="${row.date}">Bewerken</button>
-            <button class="small-btn del-btn" data-date="${row.date}">Verwijder</button>
-          </td>
-        `;
-        tableBody.appendChild(tr);
-      });
-
-      // attach events
-      document.querySelectorAll('.edit-btn').forEach(b=>{
-        b.addEventListener('click', (e)=>{
-          const d = e.currentTarget.dataset.date;
-          startEdit(d);
-        });
-      });
-      document.querySelectorAll('.del-btn').forEach(b=>{
-        b.addEventListener('click', (e)=>{
-          const d = e.currentTarget.dataset.date;
-          if (confirm('Verwijder entry voor ' + d + '?')) {
-            scores = scores.filter(s => s.date !== d);
-            saveScoresToStorage();
-            renderTable();
-            updateAllCharts();
-          }
-        });
-      });
-    }
-
-    function startEdit(dateStr) {
-      const row = scores.find(s=> s.date === dateStr);
-      if (!row) return;
-      entryDate.value = row.date;
-      inputs.slaap.value = row.slaap ?? '';
-      inputs.stijfheid.value = row.stijfheid ?? '';
-      inputs.pijn.value = row.pijn ?? '';
-      inputs.km.value = row.km ?? '';
-      inputs.energie.value = row.energie ?? '';
-      inputs.hr.value = row.hr ?? '';
-      inputs.spier.value = row.spier ?? '';
-      inputs.trainingType.value = row.trainingType || 'Rustdag';
-      inputs.duur.value = row.duur ?? '';
-      inputs.kracht.checked = !!row.kracht;
-      inputs.stress.value = row.stress ?? '';
-      inputs.voeding.value = row.voeding ?? '';
-      inputs.slaaptijd.value = row.slaaptijd ?? '';
-      inputs.opmerking.value = row.opmerking ?? '';
-      editingDate = row.date;
-      window.scrollTo({ top:0, behavior:'smooth' });
-    }
-
-    /*******************
-     * CSV export      *
-     *******************/
-    function exportCSV() {
-      if (!scores.length) { alert('Geen data om te exporteren'); return; }
-      const headers = ['date','slaap','stijfheid','pijn','km','energie','hr','spier','trainingType','duur','kracht','stress','voeding','slaaptijd','opmerking'];
-      const rows = scores.map(r => headers.map(h => (r[h] === null || r[h] === undefined) ? '' : r[h]));
-      const csv = [headers.join(',')].concat(rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))).join('\n');
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'dagelijkse_scores.csv';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-
-    /*******************
-     * Charting         *
-     *******************/
-    function getFilteredData() {
-      // period = days or 'all'
-      const period = (periodSelectTop.value || periodSelect.value || 'all');
-      if (period === 'all') return [...scores];
-      const days = Number(period);
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - (days-1));
-      const arr = scores.filter(s => parseDateStr(s.date) >= parseDateStr(formatDate(cutoff)));
-      return arr;
-    }
-
-    function formatDate(d) {
-      if (!(d instanceof Date)) d = new Date(d);
-      return d.toISOString().split('T')[0];
-    }
-
-    function buildDatasets(data) {
-      const labels = data.map(d=> d.date);
-      const datasets = [];
-      paramConfig.forEach(pc => {
-        const vals = data.map(d => (d[pc.field] === null || d[pc.field] === undefined) ? null : d[pc.field]);
-        if (pc.visible) {
-          datasets.push({
-            label: pc.label,
-            data: vals,
-            borderColor: pc.color,
-            backgroundColor: pc.color,
-            tension: 0.2,
-            fill:false,
-            yAxisID: (pc.axis === 'yScores' ? 'yScores' : pc.axis)
-          });
-        }
-      });
-      return { labels, datasets };
-    }
-
-    function createChartOnCanvas(canvas, isFullscreen=false) {
-      const ctx = canvas.getContext('2d');
-      const data = getFilteredData();
-      const built = buildDatasets(data);
-
-      const options = {
-        responsive:true,
-        maintainAspectRatio: !isFullscreen,
-        interaction: { mode:'index', intersect:false },
-        plugins: {
-          legend: {
-            display:true,
-            position: isFullscreen ? 'top' : 'bottom',
-            onClick: (e, legendItem, legend) => {
-              // default toggle
-              const index = legendItem.datasetIndex;
-              const ci = legend.chart;
-              const meta = ci.getDatasetMeta(index);
-              meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-              ci.update();
-            }
-          },
-          title: { display: false }
-        },
-        scales: {
-          yScores: { type:'linear', position:'left', min:0, max:10, title:{display:true,text:'Scores (0–10)'} },
-          yKM: { type:'linear', position:'right', beginAtZero:true, grid: { drawOnChartArea: false }, title:{display:true,text:'Kilometers'} },
-          yMin: { type:'linear', position:'right', beginAtZero:true, grid: { drawOnChartArea: false }, title:{display:true,text:'Minuten'}, offset:true },
-          yHR: { type:'linear', position:'right', beginAtZero:true, grid: { drawOnChartArea: false }, title:{display:true,text:'Bpm'}, offset:true }
-        }
-      };
-
-      // destroy existing chart if any
-      try { if (isFullscreen && fullscreenChart) fullscreenChart.destroy(); if (!isFullscreen && chart) chart.destroy(); } catch(e){}
-
-      const cfg = { type:'line', data: built, options };
-      if (isFullscreen) fullscreenChart = new Chart(ctx, cfg);
-      else chart = new Chart(ctx, cfg);
-    }
-
-    function updateAllCharts() {
-      createChartOnCanvas(chartCanvas, false);
-      createChartOnCanvas(fullscreenCanvas, true);
-    }
-
-    /*******************
-     * Events & init    *
-     *******************/
-    saveBtn.addEventListener('click', saveEntry);
-    newBtn.addEventListener('click', () => { clearForm(); editingDate=null; setDefaultDate(); });
-    exportCsvBtn.addEventListener('click', exportCSV);
-    periodSelect.addEventListener('change', () => { periodSelectTop.value = periodSelect.value; updateAllCharts(); });
-    periodSelectTop.addEventListener('change', () => { periodSelect.value = periodSelectTop.value; updateAllCharts(); });
-
-    fullscreenBtn.addEventListener('click', () => {
-      overlay.classList.add('active');
-      // ensure overlay checkboxes are synced with current paramConfig
-      // they are bound already to paramConfig via renderCheckboxes clones
-      createChartOnCanvas(fullscreenCanvas, true);
-    });
-
-    closeOverlay.addEventListener('click', ()=> overlay.classList.remove('active'));
-    overlay.addEventListener('click', (e)=> { if (e.target === overlay) overlay.classList.remove('active'); });
-    document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && overlay.classList.contains('active')) overlay.classList.remove('active'); });
-
-    // on load
-    renderTable();
-    updateAllCharts();
-
-    // helper: ensure labels/periods sync
-    window.addEventListener('storage', (e)=> {
-      if (e.key === STORAGE_KEY) {
-        scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        renderTable();
-        updateAllCharts();
-      }
-    });
-
-    // small utility: when page first opened, ensure checkboxes reflect current paramConfig
-    document.addEventListener('DOMContentLoaded', () => {
-      renderCheckboxes();
-      setDefaultDate();
-    });
-
-  </script>
+(async function init(){createCheckboxes();scores=await fetchScores();renderTable();updateAllCharts();})();
+</script>
+</main>
 </body>
 </html>
